@@ -1,0 +1,50 @@
+<?php
+
+/**
+ * TextformatterFindReplace
+ *
+ * Author: Ben Byford
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2010 by Ryan Cramer
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ *
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class TextformatterFindReplace extends Textformatter implements Module {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => 'TextformatterFindReplace',
+			'version' => 0.1,
+			'summary' => "Finds and replaces any instance of config input to config output",
+			'author' => 'Ben Byford',
+			'singular' => true,
+			'href' => 'https://github.com/benbyford/PW-starter-modules'
+		);
+	}
+
+
+	/**
+     * Find and Replace the input string
+     *
+     * @param string $str The block of text to parse
+     *
+     * The incoming string is replaced with the formatted version of itself.
+	 **/
+
+	public function format(&$str) {
+		$find = $this->findStr;
+		$str = preg_replace_callback($find, array($this,"replace"), $str);
+
+	}
+
+	// adding three underscores to a function allows other modules to hook it
+	public function ___replace($match) {
+		return $this->replaceStr;
+	}
+}
+?>

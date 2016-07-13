@@ -1,0 +1,75 @@
+<?php
+/**
+ * RedirectAdminPages (0.0.1)
+ * RedirectAdminPages Redirect specific user role to custom page.
+ *
+ * @author Ben Byford
+ *
+ * Hookable functions: ___renderPageRedirect
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2011 by Ryan Cramer
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ *
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class RedirectAdminPages extends WireData implements Module {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => "Redirect Login Page",
+			'version' => "0.0.1",
+			'summary' => "Redirect specific user role to custom page",
+			'author' => "Ben Byford",
+			'href' => "https://github.com/benbyford/PW-starter-modules/tree/master/RedirectAdminPages",
+			'icon' => "user",
+
+			// use autoload if module is to be called each load, if it is only needed to setup something set to false
+			'autoload' => true,
+			'singular' => false,
+			'requires' => "ProcessWire>=2.5",
+		);
+	}
+
+	// the ready() called only if this module is autoload = true
+	public function ready(){
+
+		// add function hooked before all page renders
+		$this->addHookBefore("PageRender::renderPage", $this, "renderPageRedirect");
+	}
+
+	/*
+	* ___renderPageRedirect
+	*
+	* redirect user to page if current user role found in config
+	*/
+
+	public function ___renderPageRedirect($event) {
+
+		//  check to see if current page is not admin template page and return early if so
+        if($this->page->template != "admin") {
+            return;
+        }
+
+		// find roles set in module configuration and create array
+		$roles = explode(',', $this->userRoles);
+
+		// for each user in module config check to see if current user
+		foreach ($roles as $key => $val) {
+			$roles[$key] = trim($roles[$key]);
+
+			// if current user found then redirect
+			if($this->user->hasRole($roles[$key])){
+
+				// redirect session to page stored in config
+				$this->session->redirect($this->redirectPage);
+
+				// stop user search fallback
+				break;
+			}
+		}
+	}
+}
