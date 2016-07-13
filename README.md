@@ -7,3 +7,5 @@
 
 - **TextformatterFindReplace** - adds Textformatter to text field formatters so so that you can find and replace text in the frontend
     - example of module extending Textformatter
+
+ [Also checkout My Processwire beginner modules](https://github.com/benbyford/PW-starter-modules/)
