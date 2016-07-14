@@ -29,7 +29,7 @@ class RedirectAdminPages extends WireData implements Module {
 
 			// use autoload if module is to be called each load, if it is only needed to setup something set to false
 			'autoload' => true,
-			'singular' => false,
+			'singular' => true,
 			'requires' => "ProcessWire>=2.5",
 		);
 	}
@@ -37,7 +37,7 @@ class RedirectAdminPages extends WireData implements Module {
 	// the ready() called only if this module is autoload = true
 	public function ready(){
 
-		// add function hooked before all page renders
+		// add function hook before page renders
 		$this->addHookBefore("PageRender::renderPage", $this, "renderPageRedirect");
 	}
 
@@ -59,15 +59,17 @@ class RedirectAdminPages extends WireData implements Module {
 
 		// for each user in module config check to see if current user
 		foreach ($roles as $key => $val) {
+
+			// get a role from the roles array
 			$roles[$key] = trim($roles[$key]);
 
-			// if current user found then redirect
+			// if current user found with role then redirect
 			if($this->user->hasRole($roles[$key])){
 
 				// redirect session to page stored in config
 				$this->session->redirect($this->redirectPage);
 
-				// stop user search fallback
+				// code should never get here but this is a simple fallback
 				break;
 			}
 		}
