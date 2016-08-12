@@ -8,10 +8,15 @@
 - **TextformatterFindReplace** - adds Textformatter to text field formatters so so that you can find and replace text in the frontend
     - example of module extending Textformatter
 
+- **ProcessSimpleAdminPage** - adds custom admin page to CMS
+    - examples how to add custom admin pages
+    - shows how to create new pages in modules
+    - install and uninstall pages from admin
+
 - **PageDeferredPublish** - adds Publish later buttons to Page Tree and Page Edit pages which allow a page to be drafted and then published at some time interval in the future. Defaults to 24hrs.
     - example of using a required module
     - using LazyCron module to run functions
     - installing fields
-    - saving page fields within a module 
+    - saving page fields within a module
 
 [Also checkout My Processwire beginner modules](https://github.com/benbyford/PW-starter-modules/)

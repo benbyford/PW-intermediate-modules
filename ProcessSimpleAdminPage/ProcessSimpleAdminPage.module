@@ -1,0 +1,61 @@
+<?php
+/**
+* ProcessSimpleAdminPage
+*
+* @author Ben Byford
+* http://www.benbyford.com
+*
+* @see http://www.processwire.com
+*/
+
+class ProcessSimpleAdminPage extends Process {
+
+    public static function getModuleInfo() {
+        return array(
+            'title' => 'Process Simple Admin Page',
+            'summary' => 'Simple Process module that adds new admin page with',
+            'version' => 001
+        );
+    }
+
+    public function execute() {
+        return '
+            <h2>Edit the text here in the module</h2>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam mattis eros vitae metus sodales eget suscipit purus rhoncus. Proin ultrices gravida dolor, non porttitor enim interdum vitae. Integer feugiat lacinia tincidunt. Nulla laoreet tristique tristique. Sed elementum justo a nisl elementum sit amet accumsan nisi tempor. Nulla quis eros et massa dignissim imperdiet a vitae purus.</p>
+
+            <p>Donec scelerisque pulvinar sem eu lobortis. Maecenas turpis ipsum, tempus dictum pharetra eu, consectetur vitae arcu. Fusce orci mauris, semper at tempus quis, volutpat molestie tellus. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Sed quam tortor, tincidunt sed semper lacinia, scelerisque dapibus quam. Morbi at nisi luctus lacus auctor ultrices eu eu leo.</p>
+
+            <p>Praesent faucibus purus id felis tincidunt dignissim. Sed sit amet ligula mi, eget semper dui. Proin consectetur gravida massa, nec luctus purus hendrerit in. Etiam volutpat, elit non venenatis suscipit, libero neque consectetur diam, id rutrum magna odio ac ligula. Maecenas sollicitudin congue neque fermentum vestibulum. Morbi nec leo nisi. Donec at nisl odio, et porta ligula.</p>
+
+            <p>Sed quis arcu nisi, ac tempor augue. Praesent non elit libero, a ullamcorper lorem. Curabitur porta odio eu nunc ultricies interdum id nec risus. Donec nibh nibh, porta eget vehicula ac, aliquet eget ante. Phasellus eget lorem eu eros eleifend ultrices. Cras sit amet neque sit amet nibh fringilla cursus ut id mauris. Praesent quis nunc justo, sed suscipit lectus. Phasellus eget ultrices risus. Curabitur eu semper est. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Ut suscipit, nisl ut imperdiet eleifend, turpis arcu placerat tortor, nec laoreet lacus neque ac tellus. Aenean ac lacus justo, quis ultricies nisi.</p>
+            ';
+    }
+    public function install(){
+
+        // create new page to add to CMS
+		$page = new Page();
+
+        // add page attributes
+        $page->template = "admin";
+        $page->name = "cms-faq";
+        $page->title = "CMS FAQ";
+        $page->save();
+
+        // set this module as the page process, this allows us to display the above
+        $page->process = 'ProcessSimpleAdminPage';
+
+        // get admin page and set as page parent
+        $admin = $this->pages->get("id=2");
+        $page->parent = $admin;
+
+        // save page
+        $page->save();
+	}
+
+	public function uninstall(){
+
+        // delete created page
+        $page = $this->pages->get("name=cms-faq");
+        $this->pages->delete($page, true);
+	}
+}
