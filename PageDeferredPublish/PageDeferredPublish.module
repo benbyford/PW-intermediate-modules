@@ -1,0 +1,313 @@
+<?php
+/**
+ * DeferredPublish (0.0.1)
+ * DeferredPublish publishes a page after a defined amount of time has elapsed using lazycron.
+ *
+ * @author Ben Byford
+ * http://www.benbyford.com
+ *
+ * ProcessWire 2.x
+ * Copyright (C) 2011 by Ryan Cramer
+ * Licensed under GNU/GPL v2, see LICENSE.TXT
+ *
+ * http://www.processwire.com
+ * http://www.ryancramer.com
+ *
+ */
+
+class PageDeferredPublish extends WireData implements Module {
+
+	public static function getModuleInfo() {
+		return array(
+			'title' => "PageDeferredPublish",
+			'version' => "0.0.1",
+			'summary' => "PageDeferredPublish",
+			'author' => "Ben Byford",
+			'href' => "https://github.com/benbyford/PW-intermediate-modules",
+			'icon' => "clock-o",
+			'autoload' => true,
+			'singular' => true,
+			'requires' => "LazyCron",
+		);
+	}
+
+	private $postPubLater 	= null;
+	private $pageID 		= null;
+	private $pagePubLater 	= null;
+	private $currentPage	= null;
+
+	private $submitName 	= 'pdp_pub_later_submit';
+	private $listPageName	= 'pdp_pub_later_list';
+	private $fieldName 		= 'pdp_pub_later';
+	private $checkboxName	= 'pdp_pub_later_check';
+
+	private $defaultInterval = 'everyMinute';
+	private $defaultTime 	= 86400;
+
+
+	public function install(){
+		// add new fields needed for module
+		$this->installFields();
+	}
+	public function uninstall(){
+		// uninstall fields
+		$this->uninstallFields();
+	}
+
+	// initialize the hook in your AutoLoad module
+	public function init() {
+
+		// get defaults from module setting in CMS
+		$this->defaultTime = $this->pub_after;
+		$this->defaultInterval = $this->cron_check;
+
+		// get admin URL
+		$this->adminUrl = $this->wire('config')->urls->admin;
+
+		// add hooks to CRON, PageList, PageEdit
+	    $this->addHookAfter("LazyCron::{$this->defaultInterval}", $this, 'publishDefferedPages');
+		$this->addHook("ProcessPageListActions::getExtraActions", $this, 'hookPageListActions');
+		$this->addHookAfter("ProcessPageEdit::buildForm", $this, "editForm");
+	}
+
+	public function ready() {
+
+		// if list button clicked then grab id
+		$this->pagePubLater = $this->input->get($this->listPageName);
+		$this->pageID = $this->input->id;
+
+		// get page
+		$this->currentPage = $this->pages->get($this->pageID);
+
+		// if pagelist pub later submit button clicked
+		if($this->pagePubLater){
+			$this->message("Page {$this->currentPage->name} deffered for publish.");
+		}
+
+		// if page edit submit button clicked
+		$this->postPubLater = $this->input->post($this->submitName);
+		if($this->postPubLater){
+			$this->message("Page {$this->currentPage->name} deffered for publish.");
+		}
+
+		// if either deffered publish sumbit found then publish page later
+		if($this->pagePubLater || $this->postPubLater){
+			$this->publishLater();
+		}
+	}
+
+	/*
+	*	Hook: ProcessPageEdit::buildForm
+	*
+	*	add Publish Later button to edit page if not yet published
+	*/
+	public function ___editForm(HookEvent $form) {
+
+		// get the InputFieldForm object from the event (return value of buildForm())
+		$form = $form->return;
+
+		$page = $this->pages->get($this->input->get->id);
+		$check = $page->get($this->checkboxName);
+
+		// check if publish button available and therfore unpublished
+		$target = $form->get('submit_publish');
+
+		if($target && $check == false){
+
+			// get InputfieldText module
+			$submit2 = $this->modules->get('InputfieldSubmit');
+			$submit2->attr('name', $this->submitName);
+			$submit2->attr('id', 'publish_later');
+			$submit2->attr('class', 'ui-button ui-widget ui-corner-all head_button_clone ui-state-default ui-priority-secondary');
+			$submit2->attr('value', 'Publish Later'); // Button: save unpublished
+
+			// get form element save and place before
+			$target = $form->get('submit_save');
+			$form->insertBefore($submit2, $target);
+
+			$form->return = $form;
+		}
+	}
+
+	public function ___hookPageListActions(HookEvent $event) {
+
+		// get current page
+		$page = $event->arguments[0];
+
+		// check to see if page is published
+		$pagePub = $page->is(Page::statusUnpublished);
+
+		// check to see if page template has deffered field
+		$pageHasDefferField = $page->get($this->fieldName);
+
+		$actions = array();
+
+		// don't get homepage or pages that are already published or are being deffered for publish
+		if($page->id > 1 && $pagePub == "published" && !is_null($pageHasDefferField) && $page->get($this->checkboxName) == false) {
+
+			$actions['publish_later'] = array(
+				'cn'   => 'PublishLater',
+				'name' => 'pub later',
+				'url'  => "{$this->adminUrl}?{$this->listPageName}=1&id={$page->id}",
+			);
+		}
+		if(count($actions)) $event->return = $actions + $event->return;
+	}
+
+	/*
+	* Publish Page on cron job
+	*
+	* Gets deffered page and publishes
+	*/
+	public function ___publish($page) {
+		$page->removeStatus(Page::statusUnpublished);
+		$page->removeStatus(Page::statusHidden);
+		$page->Save();
+	}
+
+	/*
+	* Main publish later function
+	*
+	* Gets deffered page and sets fields to be checked be lazy cron
+	*/
+	private function ___publishLater() {
+
+		// get page
+		$page = $this->pages->get($this->pageID);
+
+		// set output formatting to false
+		$page->of(false);
+
+		//  set field time to settings default time and checkbox to true
+		$page->set($this->checkboxName, true);
+		$page->set($this->fieldName, $this->defaultTime);
+
+		// save page
+		$page->save();
+		$page->of(true);
+	}
+
+	/*
+	* Lazy Cron hook function
+	*
+	* Triggers every [set time interval] and checks pages
+	* Publishes page if time runout
+	*
+	* Adds publish page log
+	*/
+	public function ___publishDefferedPages(HookEvent $e){
+
+		// seconds since last lazycron
+		$seconds = $e->arguments[0];
+
+		// find all pages with deffered field
+		$defferedPages = $this->pages->find("{$this->checkboxName}=1,include=unpublished");
+
+		// for each page decrease time for deffered field
+		foreach ($defferedPages as $page) {
+
+			// get current page time
+			$timeTillPublish = $page->get($this->fieldName);
+
+			// set time to time minus time past
+			$timeLeft = $timeTillPublish - $seconds;
+
+			// if time passed 0 or less then publish page
+			$page->of(false);
+			if($timeLeft <= 0){
+				// remove flags and save
+				$this->publish($page);
+
+				$page->set($this->fieldName, 0);
+				$page->set($this->checkboxName, 0);
+
+				// log a page has been published
+				$log = wire('log');
+				$log->message('CRON:'. $seconds .' Pages: '. $page->name .' published');
+			}else{
+				$page->set($this->fieldName, $timeLeft);
+			}
+			// save page time
+			$page->Save();
+			$page->of(true);
+		}
+	}
+
+	/*
+	* Install new module specific fields
+	*/
+	private function installFields(){
+
+		// install pub later checkbox field
+		// find installed fields
+		$f = $this->fields->get($this->fieldName);
+		if($f){
+
+			// if field already found then don't try and make it
+			$this->message($this->fieldName . ' field found');
+
+		}else{
+
+			// create new field object to store crontime
+			$f = new Field();
+			// get a field type
+			$f->type = $this->modules->get("FieldtypeInteger");
+			$f->name = $this->fieldName;
+			$f->label = 'Publish Time Left';
+			$f->defaultValue = $this->defaultTime;
+			$f->icon = 'clock-o';
+			$f->columnWidth = 50;
+			$f->collapsed = 1;
+			$f->flags = 4;
+
+			$f->save(); // save the field
+
+			// create new field object to store whether to publish or not
+			$f = new Field();
+			// get a field type
+			$f->type = $this->modules->get("FieldtypeCheckbox");
+			$f->name = $this->checkboxName;
+			$f->label = 'Publish Page later';
+			$f->defaultValue = false;
+			$f->columnWidth = 50;
+			$f->icon = 'clock-o';
+			$f->collapsed = 1;
+			$f->flags = 4;
+
+			$f->save(); // save the field
+		}
+	}
+
+	/*
+	* Uninstall module specific fields
+	*/
+	private function uninstallFields(){
+
+		// find installed fields
+		$fInt = $this->fields->get($this->fieldName);
+		$fCheck = $this->fields->get($this->checkboxName);
+
+		if($fInt && $fCheck){
+			$fieldIntUsed = $fInt->numFieldgroups();
+			$fieldCheckUsed = $fCheck->numFieldgroups();
+
+			if($fieldIntUsed){
+				// field in use by template
+				$this->message('Unable to uninstall field '.$fInt->name);
+			}else{
+				// delete installed fields
+				$this->fields->delete($fInt);
+				$this->fields->save;
+			}
+
+			if($fieldCheckUsed){
+				// field in use by template
+				$this->message('Unable to uninstall field '.$fCheck->name);
+			}else{
+				// delete installed fields
+				$this->fields->delete($fCheck);
+				$this->fields->save;
+			}
+		}
+	}
+}
