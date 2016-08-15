@@ -14,7 +14,7 @@ class ProcessSimpleAdminPage extends Process {
         return array(
             'title' => 'Process Simple Admin Page',
             'summary' => 'Simple Process module that adds new admin page with',
-            'version' => 001
+            'version' => 001,
 
             // Modules that extend Process may specify a 'page' attribute in the
             // getModuleInfo(), this page will automatically be given the module
@@ -31,7 +31,6 @@ class ProcessSimpleAdminPage extends Process {
         // 		'parent' => 'admin',
         // 		'title' => 'Site Config'
         // 	   )
-        //    );
         );
     }
 
@@ -73,6 +72,6 @@ class ProcessSimpleAdminPage extends Process {
 
         // delete created page
         $page = $this->pages->get("name=cms-faq");
-        $this->pages->delete($page, true);
+        if(count($page)) $this->pages->delete($page, true);
 	}
 }
