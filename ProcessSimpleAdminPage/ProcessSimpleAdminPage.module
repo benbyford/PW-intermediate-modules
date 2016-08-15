@@ -15,6 +15,23 @@ class ProcessSimpleAdminPage extends Process {
             'title' => 'Process Simple Admin Page',
             'summary' => 'Simple Process module that adds new admin page with',
             'version' => 001
+
+            // Modules that extend Process may specify a 'page' attribute in the
+            // getModuleInfo(), this page will automatically be given the module
+            // process when added to teh pagetree.
+
+            // I have exampled but commented out the 'page' settings below
+            // so that I can show how one might add a page to install() and
+            // uninstall() in this and other modules (that might not extend
+            // Process)
+
+
+        // 	'page' => array(
+        // 		'name' => 'site-config',
+        // 		'parent' => 'admin',
+        // 		'title' => 'Site Config'
+        // 	   )
+        //    );
         );
     }
 
